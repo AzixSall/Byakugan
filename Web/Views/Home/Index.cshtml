@@ -1,0 +1,124 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+@section Scripts{
+    <script type='text/javascript' src='https://www.bing.com/api/maps/mapcontrol?callback=GetMap' async defer></script>
+
+    <script type='text/javascript'>
+        var map;
+        var infobox;
+        var locations = @Html.Raw(Json.Serialize(ViewBag.Locations));
+        function GetMap() {
+            map = new Microsoft.Maps.Map('#myMap', {
+                credentials: 'your-bing-map-credentials'
+            });
+
+            infobox = new Microsoft.Maps.Infobox(map.getCenter(), {
+                visible: false, autoAlignment: true
+            });
+
+            infobox.setMap(map);
+
+            // Get the user's location
+            navigator.geolocation.getCurrentPosition(function (position) {
+                userLocation = new Microsoft.Maps.Location(position.coords.latitude, position.coords.longitude);
+
+                // Add a pushpin for the user's location
+                var userPushpin = new Microsoft.Maps.Pushpin(userLocation, {
+                    color: 'blue',
+                    title: 'Your Location'
+                });
+                map.entities.push(userPushpin);
+
+                AddPushpins();
+            }, function (error) {
+                console.error("Error getting user's location:", error);
+                AddPushpins();
+            });
+
+            AddPushpins();
+        }
+
+        function AddPushpins() {
+            for (var i = 0; i < locations.length; i++) {
+                var location = locations[i];
+                var lat = parseFloat(location.lat);
+                var lon = parseFloat(location.lon);
+
+                if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                    console.error('Invalid coordinates for location:', location);
+                    continue;
+                }
+
+                try {
+                    var pushpinLocation = new Microsoft.Maps.Location(lat, lon);
+                    var pushpin = new Microsoft.Maps.Pushpin(pushpinLocation, {
+                        title: location.isp,
+                        subTitle: location.city
+                    });
+
+                    pushpin.metadata = {
+                        description: generateInfoboxContent(location)
+                    };
+
+                    Microsoft.Maps.Events.addHandler(pushpin, 'click', pushpinClicked);
+
+                    map.entities.push(pushpin);
+                    pushpin.setOptions({ enableHoverStyle: true, enableClickedStyle: false });
+
+                    // Add polyline if user location is available
+                    if (userLocation) {
+                        var polyline = new Microsoft.Maps.Polyline([userLocation, pushpinLocation], {
+                            strokeColor: 'red',
+                            strokeThickness: 2
+                        });
+                        map.entities.push(polyline);
+                    }
+                } catch (error) {
+                    console.error('Error creating pushpin for location:', location, error);
+                }
+            }
+
+            if (map.entities.getLength() > 0) {
+                var bounds = Microsoft.Maps.LocationRect.fromShapes(map.entities.getPrimitives());
+                map.setView({ bounds: bounds, padding: 50 });
+            }
+        }
+
+        function generateInfoboxContent(location) {
+            return `
+                    <div style="max-width: 300px; padding: 10px;">
+                        <h3>${location.country}</h3>
+                        <p><strong>City:</strong> ${location.city}</p>
+                        <p><strong>Country Code:</strong> ${location.countryCode}</p>
+                        <p><strong>ISP:</strong> ${location.isp}</p>
+                        <p><strong>Latitude:</strong> ${location.lat}</p>
+                        <p><strong>Longitude:</strong> ${location.lon}</p>
+                        <p><strong>Organization:</strong> ${location.org}</p>
+                        <p><strong>IP:</strong> ${location.query}</p>
+                        <p><strong>Region:</strong> ${location.region}</p>
+                        <p><strong>Region Name:</strong> ${location.regionName}</p>
+                        <p><strong>Status:</strong> ${location.status}</p>
+                        <p><strong>Timezone:</strong> ${location.timezone}</p>
+                        <p><strong>Zip:</strong> ${location.zip}</p>
+                    </div>
+                `;
+        }
+
+        function pushpinClicked(e) {
+            if (e.target.metadata) {
+                infobox.setOptions({
+                    location: e.target.getLocation(),
+                    title: e.target.getTitle(),
+                    description: e.target.metadata.description,
+                    visible: true
+                });
+            }
+        }
+    </script>
+}
+<div class="text-center">
+    <div id="myMap" style="position:relative;width:100%;height:500px;"></div>
+</div>
+
