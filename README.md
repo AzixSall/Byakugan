@@ -36,7 +36,7 @@ git clone [your-repo-url]
 cd ip-detection-radar
 dotnet restore
 dotnet build
-update-database in PM
+update-database
 ```
 
 ## Dependencies
