@@ -32,7 +32,7 @@ The frontend is relying on the Bing Maps Service to display the map, you can cre
 ## Installation
 
 ```bash
-git clone [your-repo-url]
+git clone https://github.com/AzixSall/Byakugan.git
 cd ip-detection-radar
 dotnet restore
 dotnet build
